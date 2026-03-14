@@ -1,6 +1,6 @@
 # STMicroelectronics文件夹
 
-此文件夹用于存放STMicroelectronics（意法半导体）相关的开发文件和资源。
+此文件夹用于存放单片机开发相关的开发文件和资源。
 
 ## 内容说明
 
