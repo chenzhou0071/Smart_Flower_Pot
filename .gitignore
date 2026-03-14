@@ -1,0 +1,8 @@
+# 排除Claude相关文件夹
+.claude/
+
+# 常见的忽略文件
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
