@@ -1,4 +1,5 @@
 #include "stm32f10x.h"
+#include "OLED.h"
 #include "OLED_Font.h"
 
 /*引脚配置*/
@@ -271,34 +272,34 @@ void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
 void OLED_Init(void)
 {
 	uint32_t i, j;
-	
+
 	for (i = 0; i < 1000; i++)			//上电延时
 	{
 		for (j = 0; j < 1000; j++);
 	}
-	
+
 	OLED_I2C_Init();			//端口初始化
-	
+
 	OLED_WriteCommand(0xAE);	//关闭显示
-	
+
 	OLED_WriteCommand(0xD5);	//设置显示时钟分频比/振荡器频率
 	OLED_WriteCommand(0x80);
-	
+
 	OLED_WriteCommand(0xA8);	//设置多路复用率
 	OLED_WriteCommand(0x3F);
-	
+
 	OLED_WriteCommand(0xD3);	//设置显示偏移
 	OLED_WriteCommand(0x00);
-	
+
 	OLED_WriteCommand(0x40);	//设置显示开始行
-	
+
 	OLED_WriteCommand(0xA1);	//设置左右方向，0xA1正常 0xA0左右反置
-	
+
 	OLED_WriteCommand(0xC8);	//设置上下方向，0xC8正常 0xC0上下反置
 
 	OLED_WriteCommand(0xDA);	//设置COM引脚硬件配置
 	OLED_WriteCommand(0x12);
-	
+
 	OLED_WriteCommand(0x81);	//设置对比度控制
 	OLED_WriteCommand(0xCF);
 
@@ -312,10 +313,43 @@ void OLED_Init(void)
 
 	OLED_WriteCommand(0xA6);	//设置正常/倒转显示
 
-	OLED_WriteCommand(0x8D);	//设置充电泵
+	OLED_WriteCommand(0x8D);	//设置��电泵
 	OLED_WriteCommand(0x14);
 
 	OLED_WriteCommand(0xAF);	//开启显示
-		
+
 	OLED_Clear();				//OLED清屏
+}
+
+/**
+  * @brief  OLED显示表情
+  * @param  Row 行位置，范围：1~2 (1为上半部分，2为下半部分)
+  * @param  Col 列位置，范围：1~4 (一行可显示4个表情)
+  * @param  type 表情类型，EMOJI_SMILE或EMOJI_CRY
+  * @retval 无
+  */
+void OLED_ShowEmoji(uint8_t Row, uint8_t Col, EmojiType type)
+{
+	uint8_t i, j;
+	uint8_t StartPage, StartColumn;
+
+	/* 参数验证 */
+	if (Row < 1 || Row > 2 || Col < 1 || Col > 4) return;
+
+	/* 计算起始位置 */
+	/* Row=1 -> 页0-3, Row=2 -> 页4-7 (32像素高，每页8像素) */
+	StartPage = (Row - 1) * 4;
+	/* Col=1 -> 列0-31, Col=2 -> 列32-63, Col=3 -> 列64-95, Col=4 -> 列96-127 */
+	StartColumn = (Col - 1) * 32;
+
+	/* 显示32x32表情 (4页) */
+	for (i = 0; i < 4; i++)
+	{
+		OLED_SetCursor(StartPage + i, StartColumn);
+		/* 每页写入32字节数据 */
+		for (j = 0; j < 32; j++)
+		{
+			OLED_WriteData(OLED_Emoji_32x32[type][i * 32 + j]);
+		}
+	}
 }
