@@ -6,6 +6,11 @@
 *.tmp
 .DS_Store
 Thumbs.db
-STMicroelectronics\Pro.uvoptx
-STMicroelectronics\Pro.uvprojx
-STMicroelectronics\Pro.uvguix.Administrator
+STMicroelectronics/Pro.uvoptx
+STMicroelectronics/Pro.uvprojx
+STMicroelectronics/Pro.uvguix.Administrator
+STMicroelectronics/Pro.uvguix.windows
+
+# 编译输出文件夹
+STMicroelectronics/Objects/
+STMicroelectronics/Listings/
