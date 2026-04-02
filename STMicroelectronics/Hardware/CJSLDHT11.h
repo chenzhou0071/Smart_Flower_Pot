@@ -15,5 +15,6 @@ typedef struct {
 /* 函数声明 */
 void DHT11_Init(void);
 uint8_t DHT11_Read(DHT11_Data_TypeDef *data);
+void WaterPump_Open();
 
 #endif

@@ -1,5 +1,6 @@
 #include "stm32f10x.h"                  // Device header
 #include "WaterPump.h"
+#include "Delay.h"
 
 /**
  * @brief  抽水泵初始化函数
@@ -37,4 +38,16 @@ void WaterPump_Control(uint8_t state)
     {
         GPIO_ResetBits(GPIOA, GPIO_Pin_6);
     }
+}
+
+/**
+ * @brief  抽水泵控制函数
+ * @param  state: 开水泵0.5s；
+ * @retval 无
+ */
+void WaterPump_Open()
+{
+    WaterPump_Control(1);
+	Delay_ms(500);
+	WaterPump_Control(0);
 }
