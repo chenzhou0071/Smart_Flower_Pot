@@ -23,6 +23,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
+#include "HC05.h"
+
+/* 外部函数声明 */
+extern void HC05_USART_IRQHandler(void);
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -144,13 +148,14 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief  This function handles PPP interrupt request.
+  * @brief  This function handles USART1 interrupt request.
   * @param  None
   * @retval None
   */
-/*void PPP_IRQHandler(void)
+void USART1_IRQHandler(void)
 {
-}*/
+    HC05_USART_IRQHandler();
+}
 
 /**
   * @}

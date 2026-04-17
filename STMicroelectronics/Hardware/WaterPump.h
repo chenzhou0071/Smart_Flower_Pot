@@ -8,6 +8,5 @@
 // ��������
 extern void WaterPump_Init(void);
 extern void WaterPump_Control(uint8_t state);
-void WaterPump_Open();
 
 #endif
