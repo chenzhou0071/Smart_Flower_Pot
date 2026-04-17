@@ -152,7 +152,7 @@ int main(){
 			}
 
 			// 解析指令
-			if(strstr((char*)rx_buffer, "WATER_NOW") != NULL)
+			if(strstr((char*)rx_buffer, "WATER") != NULL)
 			{
 				// 立即浇水
 				WaterPump_Control(1);
