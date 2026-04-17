@@ -47,14 +47,14 @@ static u16 Get_ADC_Average(u8 ch, u8 times)
     return temp_val / times;
 }
 
-// 土壤：通道0 ✅
+// 土壤：通道0
 u8 Soil_Get_Percent(void)
 {
     u16 adc = Get_ADC_Average(ADC_Channel_0, 10);
     return (4095 - adc) * 100 / 4095;
 }
 
-// 光敏：通道1 ✅
+// 光敏：通道1
 u8 Light_Get_Percent(void)
 {
     u16 adc = Get_ADC_Average(ADC_Channel_1, 10);

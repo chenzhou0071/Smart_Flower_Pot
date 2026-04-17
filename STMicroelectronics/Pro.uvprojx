@@ -685,6 +685,46 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\OLED_Font.h</FilePath>
             </File>
+            <File>
+              <FileName>WaterPump.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\WaterPump.c</FilePath>
+            </File>
+            <File>
+              <FileName>WaterPump.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\WaterPump.h</FilePath>
+            </File>
+            <File>
+              <FileName>CJSLDHT11.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\CJSLDHT11.c</FilePath>
+            </File>
+            <File>
+              <FileName>CJSLDHT11.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\CJSLDHT11.h</FilePath>
+            </File>
+            <File>
+              <FileName>AD.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\AD.c</FilePath>
+            </File>
+            <File>
+              <FileName>AD.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\AD.h</FilePath>
+            </File>
+            <File>
+              <FileName>HC05.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\HC05.c</FilePath>
+            </File>
+            <File>
+              <FileName>HC05.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\HC05.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
