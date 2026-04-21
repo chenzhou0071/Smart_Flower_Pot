@@ -126,14 +126,15 @@ int main(){
 			// 检测蓝牙连接状态
 			HC05_CheckConnection();
 
-			// 发送hex格式的传感器数据
-			uint8_t bluetooth_data[4];
-			bluetooth_data[0] = DHT11_Data.temp_int + 12;
-			bluetooth_data[1] = DHT11_Data.humi_int + 11 - 100;  // 修正偏移量
-			bluetooth_data[2] = soil_percent;
-			bluetooth_data[3] = light_percent;
-
-			HC05_SendData(bluetooth_data, 4);
+			// 发送文本格式的传感器数据: T25H60S45L800
+			char bluetooth_str[32];
+			uint8_t temp_val = DHT11_Data.temp_int + 12;
+			int8_t humi_val = DHT11_Data.humi_int + 11 - 100;  // 修正偏移量
+			if (humi_val < 0) humi_val = 0;
+			if (humi_val >= 100) humi_val = 99;
+			sprintf(bluetooth_str, "T%02uH%02uS%02uL%02u\r\n",
+			         temp_val, (uint8_t)humi_val, soil_percent, light_percent);
+			HC05_SendData((uint8_t*)bluetooth_str, strlen(bluetooth_str));
 		}
 
 		/* ========== 蓝牙指令接收 (每次循环都检查) ========== */
@@ -159,19 +160,20 @@ int main(){
 				Delay_ms(1000);
 				WaterPump_Control(0);
 
-				// 发送hex确认
-				uint8_t ack_data[1] = {0x01};  // 0x01表示浇水完成
-				HC05_SendData(ack_data, 1);
+				// 发送文本确认
+				HC05_SendData((uint8_t*)"OK\r\n", 4);
 			}
 			else if(strstr((char*)rx_buffer, "STATUS") != NULL)
 			{
-				// 立即发送hex格式的状态数据
-				uint8_t status_data[4];
-				status_data[0] = DHT11_Data.temp_int + 12;
-				status_data[1] = DHT11_Data.humi_int + 11;
-				status_data[2] = soil_percent;
-				status_data[3] = light_percent;
-				HC05_SendData(status_data, 4);
+				// 立即发送文本格式的状态数据
+				char status_str[32];
+				uint8_t temp_val = DHT11_Data.temp_int + 12;
+				int8_t humi_val = DHT11_Data.humi_int + 11 - 100;  // 修正偏移量
+				if (humi_val < 0) humi_val = 0;
+				if (humi_val >= 100) humi_val = 99;
+				sprintf(status_str, "T%02uH%02uS%02uL%02u\r\n",
+				         temp_val, (uint8_t)humi_val, soil_percent, light_percent);
+				HC05_SendData((uint8_t*)status_str, strlen(status_str));
 			}
 		}
 

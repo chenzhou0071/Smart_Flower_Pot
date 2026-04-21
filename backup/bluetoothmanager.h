@@ -2,9 +2,12 @@
 #define BLUETOOTHMANAGER_H
 
 #include <QObject>
-#include <QJniObject>
 #include <QTimer>
 #include <QSettings>
+
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#endif
 
 class BluetoothManager : public QObject
 {
@@ -35,9 +38,8 @@ public:
     Q_INVOKABLE void saveMacAddress(const QString &mac);
     Q_INVOKABLE QString getSavedMacAddress();
 
-    // Native methods called from Java
-    void onDataReceived(const QByteArray &data);
-    void onConnectionStateChanged(int state);
+    static void onDataReceived(const QByteArray &data);
+    static void onConnectionChanged(int state);
 
 signals:
     void connectionStatusChanged();
@@ -45,11 +47,14 @@ signals:
     void sensorDataChanged();
     void waterAckReceived();
 
-private:
-    void parseSensorData(const QByteArray &data);
+private slots:
+    void onBluetoothDataReceived(const QByteArray &data);
+    void onBluetoothStateChanged(int state);
 
-    QJniObject m_bluetoothAdapter;
-    QJniObject m_bluetoothSocket;
+private:
+#ifdef Q_OS_ANDROID
+    QJniObject m_javaHelper;
+#endif
 
     QString m_connectionStatus;
     QString m_lastUpdateTime;
@@ -59,6 +64,8 @@ private:
     int m_humidity = 0;
     int m_soilMoisture = 0;
     int m_lightIntensity = 0;
+
+    static BluetoothManager *s_instance;
 };
 
 #endif // BLUETOOTHMANAGER_H
