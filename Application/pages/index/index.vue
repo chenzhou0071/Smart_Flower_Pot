@@ -10,6 +10,9 @@
 				<button class="btn-small btn-mac" @click="showMacInput = true">
 					手动
 				</button>
+				<button class="btn-small btn-disconnect-status" @click="disconnect" :disabled="!connected">
+					断开
+				</button>
 			</view>
 		</view>
 
@@ -56,38 +59,43 @@
 			</view>
 		</view>
 
-		<!-- 折线图 -->
+		<!-- 温度和湿度柱状图 -->
 		<view class="chart-card">
-			<text class="chart-title">历史数据</text>
-			<view class="chart-container">
-				<view class="chart-y-axis">
-					<text v-for="(val, i) in chartYAxis" :key="i" class="y-label">{{ val }}</text>
+			<text class="chart-title">温度和湿度历史数据</text>
+			<view class="bar-chart">
+				<view v-for="(v, i) in tempHistory" :key="i" class="bar-item">
+					<view class="bar bar-temp" :style="{ height: (v / 40 * 200) + 'rpx' }"></view>
+					<text class="bar-value">{{ v }}°</text>
 				</view>
-				<view class="chart-area">
-					<!-- 温度曲线 -->
-					<view class="line-label" style="top: 10%">温度</view>
-					<view class="line line-temp" :style="{ width: chartWidth + 'px' }">
-						<view v-for="(v, i) in tempHistory" :key="i" class="dot" :style="{ left: (i * pointSpacing) + 'px', bottom: (v / 100 * 80) + '%' }"></view>
-					</view>
-					<!-- 土壤湿度曲线 -->
-					<view class="line-label" style="top: 60%">土壤</view>
-					<view class="line line-soil" :style="{ width: chartWidth + 'px' }">
-						<view v-for="(v, i) in soilHistory" :key="i" class="dot" :style="{ left: (i * pointSpacing) + 'px', bottom: (v / 100 * 80) + '%' }"></view>
-					</view>
+				<view v-for="(v, i) in humidityHistory" :key="i" class="bar-item">
+					<view class="bar bar-humidity" :style="{ height: (v / 100 * 200) + 'rpx' }"></view>
+					<text class="bar-value">{{ v }}%</text>
 				</view>
 			</view>
-			<view class="chart-x-axis">
-				<text v-for="(t, i) in timeLabels" :key="i" class="x-label">{{ t }}</text>
+		</view>
+
+		<!-- 土壤和光照柱状��� -->
+		<view class="chart-card">
+			<text class="chart-title">土壤湿度和光照历史数据 (%)</text>
+			<view class="bar-chart">
+				<view v-for="(v, i) in soilHistory" :key="i" class="bar-item">
+					<view class="bar bar-soil" :style="{ height: (v / 100 * 200) + 'rpx' }"></view>
+					<text class="bar-value">{{ v }}%</text>
+				</view>
+				<view v-for="(v, i) in lightHistory" :key="i" class="bar-item">
+					<view class="bar bar-light" :style="{ height: (v / 100 * 200) + 'rpx' }"></view>
+					<text class="bar-value">{{ v }}%</text>
+				</view>
 			</view>
 		</view>
 
 		<!-- 操作按钮 -->
 		<view class="btn-group">
 			<button class="btn-primary" @click="sendStatus" :disabled="statusCooldown || !connected">
-				{{ statusCooldown ? cooldownText : '立即刷新' }}
+				{{ statusCooldown ? statusCooldownText : '立即刷新' }}
 			</button>
 			<button class="btn-water" @click="sendWater" :disabled="waterCooldown || !connected">
-				{{ waterCooldown ? cooldownText : '浇水' }}
+				{{ waterCooldown ? waterCooldownText : '浇水' }}
 			</button>
 		</view>
 
@@ -121,18 +129,22 @@ export default {
 				light: '--'
 			},
 
-			// 历史数据（最近10个点）
+			// 历史数据（最近5个点）
 			tempHistory: [],
+			humidityHistory: [],
 			soilHistory: [],
+			lightHistory: [],
 			timeLabels: [],
 			chartWidth: 280,
 			pointSpacing: 28,
-			chartYAxis: ['100', '50', '0'],
+			chartYAxis: ['50', '25', '0'],
 
 			statusCooldown: false,
 			waterCooldown: false,
-			cooldownText: '',
-			logs: []
+			statusCooldownText: '',
+			waterCooldownText: '',
+			logs: [],
+			rxBuffer: ''  // 接收缓冲区，用于拼接分包数据
 		}
 	},
 	onLoad() {
@@ -328,8 +340,27 @@ export default {
 		// 监听数据
 		startDataListener() {
 			uni.onBLECharacteristicValueChange((res) => {
-				const hex = this.ab2hex(res.value)
-				this.parseData(hex)
+				// 将字节数组转换为字符串（ASCII解码）
+				const arr = new Uint8Array(res.value)
+				let str = ''
+				for (let i = 0; i < arr.length; i++) {
+					str += String.fromCharCode(arr[i])
+				}
+
+				// 将接收到的数据添加到缓冲区
+				this.rxBuffer += str
+
+				// 检查是否收到完整的数据包（以\r\n结尾）
+				while (this.rxBuffer.includes('\r\n')) {
+					const endIndex = this.rxBuffer.indexOf('\r\n')
+					const completeData = this.rxBuffer.substring(0, endIndex)
+					this.rxBuffer = this.rxBuffer.substring(endIndex + 2)
+
+					if (completeData.length > 0) {
+						this.addLog('recv', '收到完整数据: ' + completeData)
+						this.parseData(completeData)
+					}
+				}
 			})
 		},
 
@@ -363,6 +394,25 @@ export default {
 			this.startCooldown('water')
 		},
 
+		// 断开连接
+		disconnect() {
+			if (!this.connected) {
+				this.addLog('warn', '未连接设备')
+				return
+			}
+
+			uni.closeBLEConnection({
+				deviceId: this.BluetoothDevice,
+				success: () => {
+					this.connected = false
+					this.BluetoothDevice = null
+					this.characteristic = null
+					this.addLog('success', '已断开连接')
+				},
+				fail: (err) => this.addLog('error', '断开失败: ' + err.errMsg)
+			})
+		},
+
 		// 写入数据
 		writeData(buffer) {
 			uni.writeBLECharacteristicValue({
@@ -385,23 +435,40 @@ export default {
 				const soil = parseInt(hex.match(/S(\d+)/)?.[1] || '0')
 				const light = parseInt(hex.match(/L(\d+)/)?.[1] || '0')
 
-				if (temp) this.sensorData.temperature = temp
-				if (hum) this.sensorData.humidity = hum
-				if (soil) this.sensorData.soil = soil
-				if (light) this.sensorData.light = light
+				// 更新传感器数据（允许显示0值）
+				this.sensorData.temperature = temp
+				this.sensorData.humidity = hum
+				this.sensorData.soil = soil
+				this.sensorData.light = light
 
-				// 更新历史
+				// 土壤湿度传感器故障检测
+				if (soil === 0) {
+					uni.showModal({
+						title: '传感器警告',
+						content: '土壤传感器接收不良！\n请检查传感器是否正确插入土壤中，确保接触良好。',
+						showCancel: false,
+						confirmText: '我知道了'
+					})
+					this.addLog('warn', '土壤湿度传感器异常: 0%')
+				}
+
+				// 更新历史数据
 				this.tempHistory.push(temp)
+				this.humidityHistory.push(hum)
 				this.soilHistory.push(soil)
-				if (this.tempHistory.length > 10) {
+				this.lightHistory.push(light)
+				this.addLog('info', '历史数据更新: T=' + temp + ' H=' + hum + ' S=' + soil + ' L=' + light)
+				if (this.tempHistory.length > 5) {
 					this.tempHistory.shift()
+					this.humidityHistory.shift()
 					this.soilHistory.shift()
+					this.lightHistory.shift()
 				}
 
 				// 更新时间标签
 				const now = new Date()
 				this.timeLabels.push(now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0'))
-				if (this.timeLabels.length > 10) this.timeLabels.shift()
+				if (this.timeLabels.length > 5) this.timeLabels.shift()
 
 			} catch (e) {
 				this.addLog('warn', '数据解析失败')
@@ -412,15 +479,15 @@ export default {
 		startCooldown(type) {
 			let seconds = 5
 			this[type + 'Cooldown'] = true
-			this.cooldownText = seconds + 's'
+			this[type + 'CooldownText'] = seconds + 's'
 
 			const timer = setInterval(() => {
 				seconds--
-				this.cooldownText = seconds + 's'
+				this[type + 'CooldownText'] = seconds + 's'
 				if (seconds <= 0) {
 					clearInterval(timer)
 					this[type + 'Cooldown'] = false
-					this.cooldownText = ''
+					this[type + 'CooldownText'] = ''
 				}
 			}, 1000)
 		},
@@ -489,6 +556,12 @@ export default {
 }
 .btn-mac {
 	background: #FF9800;
+}
+.btn-disconnect-status {
+	background: #F44336;
+}
+.btn-small[disabled] {
+	background: #ccc;
 }
 .mac-input {
 	border: 1rpx solid #ddd;
@@ -566,9 +639,9 @@ export default {
 }
 .chart-card {
 	background: #fff;
-	padding: 30rpx;
+	padding: 20rpx;
 	border-radius: 16rpx;
-	margin-bottom: 20rpx;
+	margin-bottom: 15rpx;
 }
 .chart-title {
 	font-size: 28rpx;
@@ -578,7 +651,7 @@ export default {
 }
 .chart-container {
 	display: flex;
-	height: 300rpx;
+	height: 200rpx;
 }
 .chart-y-axis {
 	width: 60rpx;
@@ -613,18 +686,73 @@ export default {
 .line-soil {
 	background: #2196F3;
 }
+.line-light {
+	background: #FFC107;
+}
 .dot {
 	position: absolute;
 	width: 12rpx;
 	height: 12rpx;
 	border-radius: 50%;
-	transform: translate(-50%, 50%);
+	transform: translate(-50%, -50%);
 }
 .line-temp .dot {
 	background: #FF5722;
 }
 .line-soil .dot {
 	background: #2196F3;
+}
+.line-light .dot {
+	background: #FFC107;
+}
+.bar-chart {
+	display: flex;
+	justify-content: space-around;
+	align-items: flex-end;
+	height: 300rpx;
+	padding: 20rpx 10rpx;
+}
+.bar-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 1;
+	margin: 0 4rpx;
+}
+.bar {
+	width: 50rpx;
+	background: #2196F3;
+	border-radius: 8rpx 8rpx 0 0;
+	min-height: 4rpx;
+	position: relative;
+}
+.bar::before {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 100%;
+	background: inherit;
+	border-radius: inherit;
+}
+.bar-temp {
+	background: #FF5722;
+}
+.bar-soil {
+	background: #2196F3;
+}
+.bar-light {
+	background: #FFC107;
+}
+.bar-humidity {
+	background: #9C27B0;
+}
+.bar-value {
+	font-size: 24rpx;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 8rpx;
 }
 .chart-x-axis {
 	display: flex;
@@ -649,11 +777,21 @@ export default {
 .btn-primary {
 	background: #2196F3;
 }
-.btn-primary[disabled], .btn-water[disabled] {
+.btn-primary[disabled], .btn-water[disabled], .btn-disconnect[disabled] {
 	background: #ccc;
 }
 .btn-water {
 	background: #4CAF50;
+}
+.btn-disconnect {
+	flex: 0 0 150rpx;
+	height: 100rpx;
+	line-height: 100rpx;
+	color: #fff;
+	font-size: 28rpx;
+	background: #F44336;
+	border-radius: 16rpx;
+	border: none;
 }
 .log-card {
 	background: #fff;
