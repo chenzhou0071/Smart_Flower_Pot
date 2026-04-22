@@ -11,7 +11,7 @@
 
 uint8_t soil_percent,light_percent;
 DHT11_Data_TypeDef DHT11_Data;
-uint32_t main_counter = 0;
+uint32_t main_counter = 2000;  // 开机立即触发第一次检测
 
 // 非阻塞延时变量
 uint32_t irrigation_counter = 0;
@@ -27,8 +27,8 @@ int main(){
 
 	while(1)
 	{
-		/* ========== 智能灌溉和传感器检测 (每5秒) ========== */
-		if(main_counter >= 500)  // 5秒到了
+		/* ========== 智能灌溉和传感器检测 (每20秒) ========== */
+		if(main_counter >= 2000)  // 20秒到了
 		{
 			main_counter = 0;
 
@@ -160,8 +160,15 @@ int main(){
 				Delay_ms(1000);
 				WaterPump_Control(0);
 
-				// 发送文本确认
-				HC05_SendData((uint8_t*)"OK\r\n", 4);
+				// 浇水后立即发送当前状态数据
+				char water_status_str[32];
+				uint8_t temp_val = DHT11_Data.temp_int + 12;
+				int8_t humi_val = DHT11_Data.humi_int + 11 - 100;
+				if (humi_val < 0) humi_val = 0;
+				if (humi_val >= 100) humi_val = 99;
+				sprintf(water_status_str, "T%02uH%02uS%02uL%02u\r\n",
+				         temp_val, (uint8_t)humi_val, soil_percent, light_percent);
+				HC05_SendData((uint8_t*)water_status_str, strlen(water_status_str));
 			}
 			else if(strstr((char*)rx_buffer, "STATUS") != NULL)
 			{
