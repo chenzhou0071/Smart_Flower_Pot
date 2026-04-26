@@ -73,7 +73,6 @@ Intelligent_irrigation_system/
 |------|------|
 | HC-08 TX | PA9 |
 | HC-08 RX | PA10 |
-| HC-08 KEY | PA4 |
 | DHT11 | PA7 |
 | 土壤湿度 ADC | PA0 |
 | 光敏电阻 ADC | PA1 |
